@@ -8,6 +8,11 @@ app = Flask(__name__)
 
 
 def parse_product_card(card):
+    ids = [
+        ['a', 'text-dark h6 font-weight-normal line-clamp-2', 'href', 'product_id=', 11],
+        ['a', 'dropdown-item dropdown-item pl-2 pr-2', 'onclick', 'add(', 5, '\');', 0]
+    ]
+    product_id = None
     # Здесь нужно извлечь 6 свойств товара
     # Пример свойств может включать название, цену, изображение, описание и т.д.
     # В реальном коде замените 'title', 'price', 'image_url', 'description' на реальные классы или идентификаторы
@@ -18,8 +23,16 @@ def parse_product_card(card):
     description = card.find('div', class_='product-text d-none font-weight-light text-secondary mb-3').text.strip()  # замените 'description-class' на реальный класс
     # Пример дополнительных свойств
     in_stock = card.find('span', class_="col").text.strip()[-2:] # замените 'property1-class' на реальный класс
-    product_id = card.find('a', class_='text-dark h6 font-weight-normal line-clamp-2')['href']
-    product_id = product_id[product_id.index('product_id=')+11:]
+    for i in ids:
+        try:
+            product_id = card.find(i[0], class_=i[1])[i[2]]
+            if len(i) == 5:
+                product_id = product_id[product_id.index(i[3])+i[4]]
+            else:
+                product_id = product_id[product_id.index(i[3])+i[4]:product_id.index(i[5])-i[6]]
+            break
+        except:
+            pass
 
     return {
         'title': title,
@@ -37,6 +50,7 @@ def parse_site(url):
 
     # Найти карточки товаров, замените 'product-card-class' на реальный класс карточки товара
     product_cards = soup.find_all('div', class_='col product-item d-flex mb-2')[:3]
+    print(product_cards)
 
     products = []
     for card in product_cards:
@@ -45,9 +59,10 @@ def parse_site(url):
     return products
 
 
-@app.route('/parse', methods=['GET'])
+@app.route('/', methods=['POST'])
 def parse_endpoint():
-    url = request.args.get('url')
+    data = request.json
+    url = data.get('url')
     if not url:
         return jsonify({'error': 'URL parameter is required'}), 400
 
@@ -59,8 +74,8 @@ def parse_endpoint():
 
 
 if __name__ == '__main__':
-    http_tunnel = ngrok.connect("5000", "http")
-    print(http_tunnel.public_url)
+    http_tunnel = ngrok.connect("5000", "http").public_url
+    print(http_tunnel)
     app.run()
 
 
